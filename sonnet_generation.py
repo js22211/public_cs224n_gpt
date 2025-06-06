@@ -61,7 +61,14 @@ class SonnetGPT(nn.Module):
     not just the distribution over next tokens for the last token!
     """
     ### YOUR CODE HERE
-    raise NotImplementedError
+    # 1) GPT-2 encoder 통과 → hidden states [B, T, H]
+    outputs = self.gpt(input_ids=input_ids, attention_mask=attention_mask)
+    hidden_states = outputs['last_hidden_state']          # [B, T, H]
+
+    # 2) weight tying을 이용해 각 토큰 위치별 logits 계산
+    logits = self.gpt.hidden_state_to_token(hidden_states)  # [B, T, V]
+
+    return logits
 
 
   def get_device(self):
