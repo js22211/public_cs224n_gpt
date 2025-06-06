@@ -14,6 +14,8 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import GPT2Tokenizer
 from sklearn.metrics import f1_score, accuracy_score
 
+from torch import nn
+
 from models.gpt2 import GPT2Model
 from optimizer import AdamW
 from tqdm import tqdm
@@ -53,6 +55,13 @@ class GPT2SentimentClassifier(torch.nn.Module):
       elif config.fine_tune_mode == 'full-model':
         param.requires_grad = True
 
+    self.classifier = torch.nn.Sequential(
+        nn.Linear(config.hidden_size, config.hidden_size),
+        nn.ReLU(),
+        nn.Dropout(p=config.hidden_dropout_prob),
+        nn.Linear(config.hidden_size, self.num_labels)
+    )
+
     ### TODO: Create any instance variables you need to classify the sentiment of BERT embeddings.
     ### YOUR CODE HERE
     raise NotImplementedError
@@ -65,7 +74,18 @@ class GPT2SentimentClassifier(torch.nn.Module):
     ###       HINT: You should consider what is an appropriate return value given that
     ###       the training loop currently uses F.cross_entropy as the loss function.
     ### YOUR CODE HERE
-    raise NotImplementedError
+    
+    # GPT2Model에서 contextualized output 얻기
+    outputs = self.gpt(input_ids=input_ids, attention_mask=attention_mask)
+
+    # 마지막 non-padding 토큰의 hidden state 추출
+    # outputs['last_token']: [batch_size, hidden_size]
+    last_token = outputs['last_token']
+
+    # classifier head에 넣어 logits 출력
+    logits = self.classifier(last_token)  # [batch_size, num_labels]
+
+    return logits
 
 
 
