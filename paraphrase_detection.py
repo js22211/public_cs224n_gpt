@@ -72,9 +72,18 @@ class ParaphraseGPT(nn.Module):
 
     'Takes a batch of sentences and produces embeddings for them.'
     ### YOUR CODE HERE
-    raise NotImplementedError
 
+    outputs = self.gpt(input_ids=input_ids, attention_mask=attention_mask)
 
+    last_token_indices = attention_mask.sum(dim=1) - 1  # Get the last token index for each sentence in the batch.
+    batch_size = input_ids.size(0)
+
+    # batch_indexing
+    last_hidden_states = outputs.last_hidden_state[torch.arange(batch_size), last_token_indices, :]
+    last_token_embeddings = last_hidden_states[torch.arange(batch_size), last_token_indices]
+    logits = self.paraphrase_detection_head(last_token_embeddings)
+
+    return logits
 
 def save_model(model, optimizer, args, filepath):
   save_info = {
@@ -151,7 +160,7 @@ def train(args):
 def test(args):
   """Evaluate your model on the dev and test datasets; save the predictions to disk."""
   device = torch.device('cuda') if args.use_gpu else torch.device('cpu')
-  saved = torch.load(args.filepath)
+  saved = torch.load(args.filepath, weights_only=False)
 
   model = ParaphraseGPT(saved['args'])
   model.load_state_dict(saved['model'])
