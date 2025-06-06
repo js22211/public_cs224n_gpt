@@ -36,19 +36,29 @@ class CausalSelfAttention(nn.Module):
   def attention(self, key, query, value, attention_mask):
 
     ### YOUR CODE HERE
-    # 1. Scaled dot product : [B,H,T,D] x [B,H,D,T] -> [B,H,T,T]
+    seq_len = query.size(-2)
+    causal_mask = torch.tril(
+        torch.ones(seq_len, seq_len, device=query.device, dtype=torch.bool)
+    ).view(1, 1, seq_len, seq_len)  # shape: [1, 1, T, T]
+
+    # Scaled dot product
     attention_scores = torch.matmul(query, key.transpose(-1, -2))
     attention_scores = attention_scores / (self.attention_head_size ** 0.5)
-    # 2. Casual mask : [B,1,1,T] -> [B,H,T,T]
-    attention_scores = attention_scores.masked_fill(attention_mask == 0, float('-inf'))
-    # 3. Apply softmax to the attention probabilities.
+
+    # Causal mask: block future tokens
+    attention_scores = attention_scores.masked_fill(~causal_mask, float('-inf'))
+
+    # Padding mask: added directly (already shaped [B, 1, 1, T])
+    attention_scores = attention_scores + attention_mask
+
+    # Softmax + dropout
     attention_probs = torch.softmax(attention_scores, dim=-1)
-    # 4. Dropout for regularization
     attention_probs = self.dropout(attention_probs)
-    # Calculate the attention value by multiplying attention probabilities and value.
+
+    # Weighted sum
     attn_value = torch.matmul(attention_probs, value)
-    # Finally, we need to rearrange the attention value to the original shape.
     attn_value = rearrange(attn_value, 'b h t d -> b t (h d)')
+
     return attn_value
     ### END YOUR CODE HERE
     raise NotImplementedError
