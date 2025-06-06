@@ -79,8 +79,8 @@ class ParaphraseGPT(nn.Module):
     batch_size = input_ids.size(0)
 
     # batch_indexing
-    last_hidden_states = outputs.last_hidden_state[torch.arange(batch_size), last_token_indices, :]
-    last_token_embeddings = last_hidden_states[torch.arange(batch_size), last_token_indices]
+    # outputs: [B, T, d] → select last token hidden state for each item in batch
+    last_token_embeddings = outputs[torch.arange(batch_size), last_token_indices]  # [B, d]
     logits = self.paraphrase_detection_head(last_token_embeddings)
 
     return logits
