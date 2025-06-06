@@ -3,11 +3,12 @@ import torch
 from einops import rearrange
 from torch import nn
 
-
+# multi-head self Attention을 직접 구현한다. 
 class CausalSelfAttention(nn.Module):
   def __init__(self, config):
-    super().__init__()
+    super().__init__() # 초기화 함수
 
+    # 헤드 차원의 설정
     self.num_attention_heads = config.num_attention_heads
     self.attention_head_size = int(config.hidden_size / config.num_attention_heads)
     self.all_head_size = self.num_attention_heads * self.attention_head_size
@@ -21,6 +22,7 @@ class CausalSelfAttention(nn.Module):
     # observe that it yields better performance.
     self.dropout = nn.Dropout(config.attention_probs_dropout_prob)
 
+  # 입력 벡터 x를 linear layer를 통해 변환하고 멀티 헤드 어텐션을 위해 [b, t, h, d] 형태로 변환한다.
   def transform(self, x, linear_layer):
     # The corresponding linear_layer of k, v, q are used to project the hidden_state (x).
     proj = linear_layer(x)
@@ -34,6 +36,21 @@ class CausalSelfAttention(nn.Module):
   def attention(self, key, query, value, attention_mask):
 
     ### YOUR CODE HERE
+    # 1. Scaled dot product : [B,H,T,D] x [B,H,D,T] -> [B,H,T,T]
+    attention_scores = torch.matmul(query, key.transpose(-1, -2))
+    attention_scores = attention_scores / (self.attention_head_size ** 0.5)
+    # 2. Casual mask : [B,1,1,T] -> [B,H,T,T]
+    attention_scores = attention_scores.masked_fill(attention_mask == 0, float('-inf'))
+    # 3. Apply softmax to the attention probabilities.
+    attention_probs = torch.softmax(attention_scores, dim=-1)
+    # 4. Dropout for regularization
+    attention_probs = self.dropout(attention_probs)
+    # Calculate the attention value by multiplying attention probabilities and value.
+    attn_value = torch.matmul(attention_probs, value)
+    # Finally, we need to rearrange the attention value to the original shape.
+    attn_value = rearrange(attn_value, 'b h t d -> b t (h d)')
+    return attn_value
+    ### END YOUR CODE HERE
     raise NotImplementedError
 
 
