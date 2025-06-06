@@ -62,11 +62,6 @@ class GPT2SentimentClassifier(torch.nn.Module):
         nn.Linear(config.hidden_size, self.num_labels)
     )
 
-    ### TODO: Create any instance variables you need to classify the sentiment of BERT embeddings.
-    ### YOUR CODE HERE
-    raise NotImplementedError
-
-
   def forward(self, input_ids, attention_mask):
     '''Takes a batch of sentences and returns logits for sentiment classes'''
 
