@@ -53,6 +53,8 @@ class GPT2Layer(nn.Module):
     normed_input = self.out_layer_norm(hidden_states) # attention output is normalized before feed forward
     ff_output = self.interm_af(self.interm_dense(normed_input)) # Feed forward layer with activation
     hidden_states = self.add(hidden_states, ff_output, self.out_dense, self.out_dropout) # second Dense-dropout-add for feed forward output
+    
+    return hidden_states
     ### YOUR CODE HERE
     raise NotImplementedError
 
