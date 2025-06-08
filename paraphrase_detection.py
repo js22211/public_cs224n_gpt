@@ -32,6 +32,7 @@ from models.gpt2 import GPT2Model
 
 from optimizer import AdamW
 
+from torch.amp import autocast, GradScaler
 TQDM_DISABLE = False
 
 # Fix the random seed.
@@ -117,6 +118,7 @@ def train(args):
   args = add_arguments(args)
   model = ParaphraseGPT(args)
   model = model.to(device)
+  scaler = GradScaler(device='cuda')
 
   lr = args.lr
   optimizer = AdamW(model.parameters(), lr=lr, weight_decay=0.)
@@ -145,11 +147,14 @@ def train(args):
 
       # Compute the loss, gradients, and update the model's parameters.
       optimizer.zero_grad()
-      logits = model(b_ids, b_mask)
-      preds = torch.argmax(logits, dim=1)
-      loss = F.cross_entropy(logits, labels, reduction='mean')
-      loss.backward()
-      optimizer.step()
+      with autocast(device_type='cuda'):  # <-- AMP 적용
+          logits = model(b_ids, b_mask)
+          loss = F.cross_entropy(logits, labels, reduction='mean')
+
+      # AMP를 위한 scaler로 backward 및 optimizer step 수행
+      scaler.scale(loss).backward()
+      scaler.step(optimizer)
+      scaler.update()
 
       train_loss += loss.item()
       num_batches += 1
