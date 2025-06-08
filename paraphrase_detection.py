@@ -73,14 +73,14 @@ class ParaphraseGPT(nn.Module):
     'Takes a batch of sentences and produces embeddings for them.'
     ### YOUR CODE HERE
 
-    outputs = self.gpt(input_ids=input_ids, attention_mask=attention_mask)
+    # gpt 모델의 출력은 딕셔너리이므로, 'last_hidden_state' 키로 값을 가져옵니다.
+    gpt_outputs = self.gpt(input_ids=input_ids, attention_mask=attention_mask)
+    sequence_output = gpt_outputs['last_hidden_state'] # 이 부분이 핵심 수정사항입니다.
 
-    last_token_indices = attention_mask.sum(dim=1) - 1  # Get the last token index for each sentence in the batch.
+    last_token_indices = attention_mask.sum(dim=1) - 1
     batch_size = input_ids.size(0)
 
-    # batch_indexing
-    # outputs: [B, T, d] → select last token hidden state for each item in batch
-    last_token_embeddings = outputs[torch.arange(batch_size), last_token_indices]  # [B, d]
+    last_token_embeddings = sequence_output[torch.arange(batch_size), last_token_indices]
     logits = self.paraphrase_detection_head(last_token_embeddings)
 
     return logits
