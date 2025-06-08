@@ -134,6 +134,15 @@ def train(args):
       b_mask = b_mask.to(device)
       labels = labels.to(device)
 
+        # --- 디버깅 코드 추가 ---
+      if not torch.all((labels >= 0) & (labels < 2)):
+          print("!!!!! Invalid label detected !!!!!")
+          print(f"Labels in this batch: {labels.cpu().numpy()}")
+          print(f"Unique labels in this batch: {torch.unique(labels).cpu().numpy()}")
+          # 문제가 되는 배치를 확인했으면 실행을 중단할 수 있습니다.
+          # import sys; sys.exit()
+      # --- 디버깅 코드 끝 ---
+
       # Compute the loss, gradients, and update the model's parameters.
       optimizer.zero_grad()
       logits = model(b_ids, b_mask)
